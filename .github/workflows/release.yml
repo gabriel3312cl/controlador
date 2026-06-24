@@ -29,19 +29,27 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Download FFmpeg shared
+      - name: Install LLVM + FFmpeg
         shell: pwsh
         run: |
-          curl -L -o ffmpeg.7z "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z"
-          7z x ffmpeg.7z -oC:\ffmpeg -y
-          $dir = Get-ChildItem C:\ffmpeg -Directory | Select-Object -First 1
-          $ffmpegRoot = "C:\ffmpeg\$($dir.Name)"
-          echo "FFMPEG_DIR=$ffmpegRoot" >> $env:GITHUB_ENV
-          Write-Host "FFmpeg extracted to $ffmpegRoot"
+          # Find LLVM from Visual Studio installation
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          Add-Content $env:GITHUB_ENV "LIBCLANG_PATH=${vsPath}\VC\Tools\LLVM\x64\bin`n"
+          Write-Host "LIBCLANG_PATH=${vsPath}\VC\Tools\LLVM\x64\bin"
+
+          # Download and extract FFmpeg
+          Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z" -OutFile ffmpeg.7z
+          7z x ffmpeg.7z -y
+          $dir = Get-ChildItem -Directory -Filter "ffmpeg-*" | Select-Object -First 1
+          Rename-Item $dir.Name ffmpeg
+          Add-Content $env:GITHUB_ENV "FFMPEG_DIR=${pwd}\ffmpeg`n"
+          Add-Content $env:GITHUB_PATH "${pwd}\ffmpeg\bin`n"
+          Write-Host "FFMPEG_DIR=${pwd}\ffmpeg"
 
       - name: Build (release)
         shell: pwsh
         run: |
+          Write-Host "LIBCLANG_PATH=$env:LIBCLANG_PATH"
           Write-Host "FFMPEG_DIR=$env:FFMPEG_DIR"
           cargo build --release
 
@@ -56,7 +64,7 @@ jobs:
               Copy-Item $dll.FullName $dest
               Write-Host "Bundled: $($dll.Name)"
             } else {
-              Write-Host "WARNING: $_*.dll not found in $bin"
+              Write-Host "WARNING: $_*.dll not found"
             }
           }
 
