@@ -44,6 +44,9 @@ jobs:
           Rename-Item $dir.Name ffmpeg
           Add-Content $env:GITHUB_ENV "FFMPEG_DIR=${pwd}\ffmpeg`n"
           Add-Content $env:GITHUB_PATH "${pwd}\ffmpeg\bin`n"
+          # Explicit include/lib dirs (belt-and-suspenders)
+          Add-Content $env:GITHUB_ENV "FFMPEG_INCLUDE_DIR=${pwd}\ffmpeg\include`n"
+          Add-Content $env:GITHUB_ENV "FFMPEG_LIB_DIR=${pwd}\ffmpeg\lib`n"
           Write-Host "FFMPEG_DIR=${pwd}\ffmpeg"
 
       - name: Build (release)
@@ -51,6 +54,8 @@ jobs:
         run: |
           Write-Host "LIBCLANG_PATH=$env:LIBCLANG_PATH"
           Write-Host "FFMPEG_DIR=$env:FFMPEG_DIR"
+          Write-Host "FFMPEG_INCLUDE_DIR=$env:FFMPEG_INCLUDE_DIR"
+          Write-Host "FFMPEG_LIB_DIR=$env:FFMPEG_LIB_DIR"
           cargo build --release
 
       - name: Bundle FFmpeg DLLs
