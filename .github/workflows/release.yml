@@ -49,6 +49,23 @@ jobs:
           Add-Content $env:GITHUB_ENV "FFMPEG_LIB_DIR=${pwd}\ffmpeg\lib`n"
           Write-Host "FFMPEG_DIR=${pwd}\ffmpeg"
 
+          # avfft.h was removed in FFmpeg 5.1; ffmpeg-sys-next 7.x still tries to include it.
+          # Provide a stub so bindgen can parse the header without errors.
+          $stub = @'
+#ifndef AVCODEC_AVFFT_H
+#define AVCODEC_AVFFT_H
+typedef float FFTSample;
+typedef struct FFTComplex { FFTSample re, im; } FFTComplex;
+typedef struct FFTContext FFTContext;
+typedef struct RDFTContext RDFTContext;
+typedef struct DCTContext DCTContext;
+typedef enum RDFTransformType { DFT_R2C, IDFT_C2R, IDFT_R2C, DFT_C2R } RDFTransformType;
+typedef enum DCTTransformType { DCT_II = 0, DCT_III, DCT_I, DST_I } DCTTransformType;
+#endif
+'@
+          Set-Content "${pwd}\ffmpeg\include\libavcodec\avfft.h" $stub
+          Write-Host "Stub avfft.h written"
+
       - name: Build (release)
         shell: pwsh
         run: |
