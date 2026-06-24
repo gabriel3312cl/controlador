@@ -1,0 +1,1 @@
+// Protocol integration tests — placeholder

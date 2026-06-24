@@ -1,0 +1,97 @@
+name: Build & Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build (release)
+        run: cargo build --release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotedesk-macos
+          path: target/release/remotedesk
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Download FFmpeg shared
+        shell: pwsh
+        run: |
+          curl -L -o ffmpeg.7z "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z"
+          7z x ffmpeg.7z -oC:\ffmpeg -y
+          $dir = Get-ChildItem C:\ffmpeg -Directory | Select-Object -First 1
+          $ffmpegRoot = "C:\ffmpeg\$($dir.Name)"
+          echo "FFMPEG_DIR=$ffmpegRoot" >> $env:GITHUB_ENV
+          Write-Host "FFmpeg extracted to $ffmpegRoot"
+
+      - name: Build (release)
+        shell: pwsh
+        run: |
+          Write-Host "FFMPEG_DIR=$env:FFMPEG_DIR"
+          cargo build --release
+
+      - name: Bundle FFmpeg DLLs
+        shell: pwsh
+        run: |
+          $bin = "$env:FFMPEG_DIR\bin"
+          $dest = "target\release"
+          @("avcodec", "avutil", "swscale", "swresample", "avformat") | ForEach-Object {
+            $dll = Get-ChildItem "$bin\$_-*.dll" | Select-Object -First 1
+            if ($dll) {
+              Copy-Item $dll.FullName $dest
+              Write-Host "Bundled: $($dll.Name)"
+            } else {
+              Write-Host "WARNING: $_*.dll not found in $bin"
+            }
+          }
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path (Get-ChildItem target\release\remotedesk.exe, target\release\*.dll) `
+            -DestinationPath remotedesk-windows.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotedesk-windows
+          path: remotedesk-windows.zip
+
+  release:
+    needs: [build-macos, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: remotedesk-macos
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: remotedesk-windows
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            remotedesk
+            remotedesk-windows.zip
+          generate_release_notes: true

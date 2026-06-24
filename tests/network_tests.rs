@@ -1,0 +1,1 @@
+// Network integration tests — placeholder

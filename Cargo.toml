@@ -1,0 +1,30 @@
+[package]
+name = "remotedesk"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "remotedesk"
+path = "src/main.rs"
+
+[dependencies]
+eframe = "0.27"
+tokio = { version = "1", features = ["full"] }
+local-ip-address = "0.6"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.9"
+core-graphics = "0.23"
+image = "0.24"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.56", features = [
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_Foundation",
+] }
+ffmpeg-next = "6"
