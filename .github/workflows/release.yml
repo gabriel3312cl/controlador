@@ -51,18 +51,16 @@ jobs:
 
           # avfft.h was removed in FFmpeg 5.1; ffmpeg-sys-next 7.x still tries to include it.
           # Provide a stub so bindgen can parse the header without errors.
-          $stub = @'
-#ifndef AVCODEC_AVFFT_H
-#define AVCODEC_AVFFT_H
-typedef float FFTSample;
-typedef struct FFTComplex { FFTSample re, im; } FFTComplex;
-typedef struct FFTContext FFTContext;
-typedef struct RDFTContext RDFTContext;
-typedef struct DCTContext DCTContext;
-typedef enum RDFTransformType { DFT_R2C, IDFT_C2R, IDFT_R2C, DFT_C2R } RDFTransformType;
-typedef enum DCTTransformType { DCT_II = 0, DCT_III, DCT_I, DST_I } DCTTransformType;
-#endif
-'@
+          $stub = "#ifndef AVCODEC_AVFFT_H`n" +
+            "#define AVCODEC_AVFFT_H`n" +
+            "typedef float FFTSample;`n" +
+            "typedef struct FFTComplex { FFTSample re, im; } FFTComplex;`n" +
+            "typedef struct FFTContext FFTContext;`n" +
+            "typedef struct RDFTContext RDFTContext;`n" +
+            "typedef struct DCTContext DCTContext;`n" +
+            "typedef enum RDFTransformType { DFT_R2C, IDFT_C2R, IDFT_R2C, DFT_C2R } RDFTransformType;`n" +
+            "typedef enum DCTTransformType { DCT_II = 0, DCT_III, DCT_I, DST_I } DCTTransformType;`n" +
+            "#endif`n"
           Set-Content "${pwd}\ffmpeg\include\libavcodec\avfft.h" $stub
           Write-Host "Stub avfft.h written"
 
