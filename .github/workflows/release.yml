@@ -37,8 +37,11 @@ jobs:
           Add-Content $env:GITHUB_ENV "LIBCLANG_PATH=${vsPath}\VC\Tools\LLVM\x64\bin`n"
           Write-Host "LIBCLANG_PATH=${vsPath}\VC\Tools\LLVM\x64\bin"
 
-          # Download and extract FFmpeg
-          Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z" -OutFile ffmpeg.7z
+          # Download and extract FFmpeg.
+          # Pin to a 7.1 shared build: ffmpeg-sys-next 7.1.3 only supports FFmpeg 7.x.
+          # The "release" archive now tracks FFmpeg 8.0, whose struct layouts differ
+          # and break ffmpeg-sys-next's bindgen layout assertions.
+          Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-7.1.1-full_build-shared.7z" -OutFile ffmpeg.7z
           7z x ffmpeg.7z -y
           $dir = Get-ChildItem -Directory -Filter "ffmpeg-*" | Select-Object -First 1
           Rename-Item $dir.Name ffmpeg
